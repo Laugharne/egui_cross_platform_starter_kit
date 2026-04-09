@@ -1,6 +1,6 @@
 # egui Cross-Platform Starter Kit 🦀🚀
 
-A minimalist, [ready-to-use template](https://github.com/Laugharne/egui_cross_platform_starter_kit) for building high-performance graphical applications in **Rust** using the **egui** library. This kit is designed to compile seamlessly for both **Native** (Windows, macOS, Linux) and **WebAssembly** (WASM).
+A minimalist, **[ready-to-use template](https://github.com/Laugharne/egui_cross_platform_starter_kit)** for building high-performance graphical applications in **Rust** using the **egui** library. This kit is designed to compile seamlessly for both **Native** (Windows, macOS, Linux) and **WebAssembly** (WASM).
 
 
 ## ✨ Features
@@ -63,7 +63,7 @@ Then, open your browser at: `http://127.0.0.1:8080`
     ├── app.rs
     └── main.rs
 
-2 directories, 7 files
+2 directories, 8 files
 ```
 
   - `src/main.rs`: Entry point for the native binary.
@@ -71,6 +71,7 @@ Then, open your browser at: `http://127.0.0.1:8080`
   - `src/app.rs`: This is where your UI code and application state live.
   - `assets/`: Folder for icons, fonts, and images.
   - `index.html`: Boilerplate for web rendering.
+  - `.gitignore`: Avoid to push on GitHub some files and directories.
 
 
   ## 🏗️ Web Deployment
@@ -115,8 +116,8 @@ body {
 eframe can sometimes enter a resizing loop where it confuses logical pixels (CSS) and physical pixels (device), causing coordinate offsets.
 
 The egui canvas has **two sizes**:
-- `canvas.width/height` → Physical pixels (rendering resolution)
-- `canvas.style.width/height` → CSS pixels (displayed size)
+  - `canvas.width/height` → Physical pixels (rendering resolution)
+  - `canvas.style.width/height` → CSS pixels (displayed size)
 
 If these two dimensions do not match correctly via the `devicePixelRatio`, mouse coordinates (which are always in CSS pixels) will be misinterpreted.
 
@@ -142,7 +143,7 @@ If these two dimensions do not match correctly via the `devicePixelRatio`, mouse
 
 ### 3. **Canvas Embedded with Other HTML Elements**
 
-When the canvas is embedded within a larger page and has a border or padding, egui uses `getBoundingClientRect()` but might not correctly subtract these values. This bug was fixed in recent versions of eframe—ensure you are using **eframe ≥ 0.28**.
+When the canvas is embedded within a larger page and has a border or padding, egui uses `getBoundingClientRect()` but might not correctly subtract these values. This bug was fixed in recent versions of eframe, ensure you are using **eframe ≥ 0.28**.
 
 ----
 
@@ -165,16 +166,104 @@ If the user has zoomed in/out in their browser, the `devicePixelRatio` changes. 
 // ✅ Let eframe handle it automatically
 ```
 
+## 🚀 Why use mimalloc with egui?
+
+Using **mimalloc** (developed by Microsoft) with **egui** is a common and excellent choice for Rust desktop applications. In an "Immediate Mode" GUI like egui, the UI is rebuilt every frame, leading to frequent memory allocations. A performance-oriented allocator can help keep the frame rate stable.
+
+1.  **Lower Latency**: mimalloc is designed to minimize "stop-the-world" moments and fragmentation, which helps prevent micro-stutters in your 60+ FPS UI loop.
+2.  **Immediate Mode Friendly**: egui constantly allocates and deallocates small objects (vertex buffers, strings, layout shapes). mimalloc handles these small, short-lived allocations much faster than the default system allocator (especially on Windows).
+3.  **Efficiency**: It generally offers a smaller memory footprint over time due to better fragmentation management.
+
+---
+
+## 🛠️ Implementation
+
+Integration is straightforward and only takes a few lines of code.
+
+### 1. Add the dependency
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+mimalloc = "0.1"
+```
+
+----
+
+### 2. Set the Global Allocator
+In your `main.rs` (or `lib.rs`), declare it as the global allocator. This must be done at the root of the file, outside of any function.
+
+```rust
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
+fn main() {
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(
+        "egui App with mimalloc",
+        native_options,
+        Box::new(|cc| Box::new(MyApp::new(cc))),
+    ).expect("Failed to run app");
+}
+```
+
+----
+
+## ⚠️ Important Considerations
+
+### 1. WebAssembly (WASM) Warning (!)
+**Do not use mimalloc for the WASM target.**
+WASM environments manage memory differently, and mimalloc either won't compile or won't provide any benefit. You should use **conditional compilation** to keep it desktop-only:
+
+```rust
+#[cfg(not(target_arch = "wasm32"))]
+use mimalloc::MiMalloc;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+```
+
+For web applications, the size of the `.wasm` file is a critical performance metric (Load Time).
+
+  - Adding `mimalloc` (a large C library) significantly increases the binary size.
+  - In the WASM community, the trend is actually toward "tiny" allocators like `wee_alloc` (though it is now unmaintained, it was designed to be the opposite of mimalloc: prioritizing size over speed).
+
+----
+
+### 2. Real-World Impact
+While mimalloc is fast, it isn't a "magic wand" for performance:
+- **CPU usage**: You might see a **5% to 15%** reduction in time spent on memory tasks.
+6 **Frame Consistency**: The biggest win is usually the **reduction of frame-time spikes** (jitter), making the scrolling and animations feel smoother.
+
+----
+
+### 3. Alternative: jemalloc (?)
+`jemalloc` is another popular alternative, often used in heavy Linux server environments. However, for cross-platform desktop apps (Windows/macOS/Linux), **mimalloc** is generally preferred because it is easier to link and performant across all three.
+
 
 ## 📝 Resources
+
+**Tools:**
 - [egui Documentation](https://docs.rs/egui)
 - [eframe Documentation](https://docs.rs/eframe)
 - [egui Github](https://github.com/emilk/egui)
 - [Trunk Documentation](https://trunkrs.dev/)
 - [egui Web Demo](https://www.egui.rs/)
+
+**Tutorials:**
 - [Rust GUI with Neowin - YouTube](https://www.youtube.com/playlist?list=PLOeWRYj1QznUX08O4K1Ibh1YM9G_ew6iM)
 - [GoCelesteAI / Repositories · GitHub](https://github.com/GoCelesteAI?tab=repositories&q=EGUI&type&language&sort)
 
+**mimalloc:**
+- [The Power of jemalloc and mimalloc in Rust — and When to Use Them](https://medium.com/@syntaxSavage/the-power-of-jemalloc-and-mimalloc-in-rust-and-when-to-use-them-820deb8996fe)
+- https://crates.io/crates/mimalloc
+- https://docs.rs/crate/mimalloc/latest
+- https://microsoft.github.io/mimalloc/
+- https://github.com/microsoft/mimalloc
+- https://github.com/microsoft/mimalloc/issues/140 ⚠
 
 ## 🤝 Contributing
 
