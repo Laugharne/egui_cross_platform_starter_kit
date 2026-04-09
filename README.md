@@ -54,27 +54,25 @@ Then, open your browser at: `http://127.0.0.1:8080`
 .
 ├── assets
 │   └── icon.png
-├── .gitignore
-├── Cargo.lock
+│── src
+│   ├── app.rs
+│   └── main.rs
+│── .gitignore
 ├── Cargo.toml
 ├── index.html
-├── README.md
-└── src
-    ├── app.rs
-    └── main.rs
+└── README.md
 
-2 directories, 8 files
+2 directories, 7 files
 ```
 
-  - `src/main.rs`: Entry point for the native binary.
-  - `src/lib.rs`: Shared application logic (required for WASM).
-  - `src/app.rs`: This is where your UI code and application state live.
   - `assets/`: Folder for icons, fonts, and images.
-  - `index.html`: Boilerplate for web rendering.
+  - `src/main.rs`: Entry point for the native binary.
+  - `src/app.rs`: This is where your UI code and application state live.
   - `.gitignore`: Avoid to push on GitHub some files and directories.
+  - `index.html`: Boilerplate for web rendering.
 
 
-  ## 🏗️ Web Deployment
+## 🏗️ Web Deployment
 
 To generate static files ready for production (GitHub Pages, Netlify, Vercel, etc.):
 

@@ -5,6 +5,14 @@ use eframe::egui;
 #[cfg(not(target_arch = "wasm32"))]
 use egui::IconData;
 
+#[cfg(not(target_arch = "wasm32"))]
+use mimalloc::MiMalloc;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
+
 mod app;
 use app::MyApp;
 
