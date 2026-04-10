@@ -207,6 +207,30 @@ fn main() {
 }
 ```
 
+**Requirements**
+
+A **C** compiler is required for building [mimalloc](https://github.com/microsoft/mimalloc) with cargo.
+
+#### [](https://crates.io/crates/mimalloc#usage-with-secure-mode)Usage with secure mode
+
+Using secure mode adds guard pages, randomized allocation, encrypted free lists, etc. The performance penalty is usually around 10% according to [mimalloc](https://github.com/microsoft/mimalloc) own benchmarks.
+
+To enable secure mode, put in `Cargo.toml`:
+
+```toml
+[dependencies]
+mimalloc = { version = "*", features = ["secure"] }
+```
+
+#### [](https://crates.io/crates/mimalloc#usage-with-v3)Usage with v3
+
+By default this library uses `mimalloc v2`. To enable `v3`, put in `Cargo.toml`:
+
+```toml
+[dependencies]
+mimalloc = { version = "*", features = ["v3"] }
+```
+
 ----
 
 ## ⚠️ Important Considerations
@@ -238,8 +262,183 @@ While mimalloc is fast, it isn't a "magic wand" for performance:
 
 ----
 
-### 3. Alternative: jemalloc (?)
+### 3. Alternative: `jemalloc` (?)
 `jemalloc` is another popular alternative, often used in heavy Linux server environments. However, for cross-platform desktop apps (Windows/macOS/Linux), **mimalloc** is generally preferred because it is easier to link and performant across all three.
+
+----
+
+
+## Optmizations
+
+### 1. Optimize `Cargo.toml`
+
+```toml
+[package]
+name = "mon_application_egui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Désactive les fonctionnalités par défaut inutiles pour réduire les dépendances
+eframe = { version = "0.27", default-features = false, features = [
+    "accesskit",     # Accessibilité
+    "default_fonts", # Polices de base (essentiel)
+    "glow",          # Rendu via OpenGL (plus léger que WGPU en natif)
+    "wayland",       # Pour Linux
+    "x11",           # Pour Linux
+] }
+
+[profile.release]
+# 's' est souvent un meilleur compromis que 'z' pour les GUI
+# car 'z' peut trop ralentir le rendu graphique.
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# OPTIMISATION CRUCIALE : On optimise les dépendances au maximum
+# même en mode debug ou si le profil principal est en 's' ou 'z'.
+[profile.release.package."*"]
+opt-level = 3
+```
+
+
+### 2. Minify Features in `Cargo.toml`
+
+`egui` and `eframe` come with default features (like extra fonts or image formats) that you might not use. You can disable them to save space.
+
+```toml
+[dependencies]
+egui   = { version = "0.27", default-features = false, features = ["default_fonts"] }
+eframe = { version = "0.27", default-features = false, features = ["wgpu", "glow"] }
+```
+
+####  Optimizing Egui Native Binary Size
+
+
+To compile an **egui** application (generally using `eframe`) into a native binary with a minimal output profile, you need to be a bit more cautious. Unlike a command-line utility, a graphical application depends on heavy system libraries and font/image management.
+
+Below is a suggested `Cargo.toml` optimized for native builds, balancing **binary size** and **rendering performance** (as a GUI must remain fluid).
+
+```toml
+[package]
+name = "my_egui_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Disable unnecessary default features to reduce dependencies
+eframe = { version = "0.27", default-features = false, features = [
+    "accesskit",     # Accessibility
+    "default_fonts", # Basic fonts (essential)
+    "glow",          # Rendering via OpenGL (lighter than WGPU for native)
+    "wayland",       # For Linux
+    "x11",           # For Linux
+] }
+
+[profile.release]
+# 's' is often a better compromise than 'z' for GUIs
+# because 'z' can slow down graphical rendering too much.
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# CRUCIAL OPTIMIZATION: Maximize optimization for dependencies
+# even if the main profile is set to 's' or 'z'.
+[profile.release.package."*"]
+opt-level = 3
+```
+
+**Choosing `opt-level = "s"` instead of `"z"`**
+
+For a graphical application, smoothness (60 FPS) is the priority. The `"z"` optimization can sometimes break critical loop optimizations required for pixel rendering. `"s"` seeks a compromise: reducing size without brutally sacrificing execution speed.
+
+**The `[profile.release.package."*"]` trick**
+
+This is the "secret" for complex Rust projects. It tells Cargo: *"Optimize my own functions for size, but compile all external libraries (like the graphical rendering engine) with maximum optimization (`3`)."* This keeps the interface ultra-responsive while reducing the weight of your business logic.
+
+**Feature selection in `eframe`**
+
+By default, `eframe` often includes `wgpu` for rendering. It is powerful but **very heavy** in terms of binary size (as it includes complex shader compilers).
+* By using **`glow`** (OpenGL), your binary will be significantly lighter.
+* Remember to disable `default-features` to keep only what is strictly necessary for your target platform.
+
+**Caution with `panic = "abort"` and windows**
+
+Using `panic = "abort"` is excellent for size, but keep in mind that in the event of a crash, the application will close instantly without leaving console logs or a proper error window. For native apps, this is often acceptable.
+
+**A final tip for image weight**
+
+If you display images in your egui application, use the **WebP** format or ensure you compress your assets before compilation, as they are often included directly in the binary via `include_bytes!`.
+
+----
+
+### 3. Shrinking .wasm Size
+
+#### Optimize `Cargo.toml`
+
+The most significant gains come from telling the compiler to prioritize binary size.
+
+```toml
+[profile.release]
+# Optimize for size ('z' is more aggressive than 's')
+opt-level = "z"
+
+# Enable Link Time Optimization (LTO) to remove dead code across crates
+lto = true
+
+# Reduce parallel compilation to allow deeper optimization
+codegen-units = 1
+
+# Strip symbols and debug info from the binary
+strip = true
+
+# Immediately panic without stack unwinding (saves space)
+panic = "abort"
+```
+
+----
+
+#### Post-processing with `wasm-opt`
+
+`wasm-opt` is part of the **Binaryen** toolkit. It performs passes on the generated WASM file that the Rust compiler cannot do. It can often reduce the size by another **20% to 40%**.
+
+**Command:**
+```bash
+wasm-opt -Oz -o output_optimized.wasm input.wasm
+```
+
+See: [Binaryen (wasm-opt) on GitHub](https://github.com/WebAssembly/binaryen)
+
+#### Use Compression (Brotli/Gzip)
+
+This is the most effective way to reduce transfer size. WASM files are highly compressible. A 5MB file can often be served at around 1.2MB using Brotli.
+
+- Brotli: Best compression ratio for web assets.
+- Gzip: Faster but slightly larger than Brotli.
+- Reference: [MDN - Content-Encoding](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding)
+
+#### Analyze the Binary with `twiggy`
+
+If your file is still too large, use twiggy to find out exactly which functions or libraries are taking up the most space.
+
+```bash
+cargo install twiggy
+twiggy top -n 20 your_file.wasm
+```
+
+Reference: [Twiggy Documentation](https://rustwasm.github.io/twiggy/)
+
+#### Trunk spécific
+
+**TO DO**
+
+
+----
+
 
 
 ## 📝 Resources
@@ -254,6 +453,9 @@ While mimalloc is fast, it isn't a "magic wand" for performance:
 **Tutorials:**
 - [Rust GUI with Neowin - YouTube](https://www.youtube.com/playlist?list=PLOeWRYj1QznUX08O4K1Ibh1YM9G_ew6iM)
 - [GoCelesteAI / Repositories · GitHub](https://github.com/GoCelesteAI?tab=repositories&q=EGUI&type&language&sort)
+
+**WASM:**
+- https://rustwasm.github.io/
 
 **mimalloc:**
 - [The Power of jemalloc and mimalloc in Rust — and When to Use Them](https://medium.com/@syntaxSavage/the-power-of-jemalloc-and-mimalloc-in-rust-and-when-to-use-them-820deb8996fe)
