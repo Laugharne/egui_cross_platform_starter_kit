@@ -164,7 +164,7 @@ If the user has zoomed in/out in their browser, the `devicePixelRatio` changes. 
 // ✅ Let eframe handle it automatically
 ```
 
-## 🚀 Why use mimalloc with egui?
+## 🧠 Why use mimalloc with egui?
 
 Using **mimalloc** (developed by Microsoft) with **egui** is a common and excellent choice for Rust desktop applications. In an "Immediate Mode" GUI like egui, the UI is rebuilt every frame, leading to frequent memory allocations. A performance-oriented allocator can help keep the frame rate stable.
 
@@ -174,11 +174,11 @@ Using **mimalloc** (developed by Microsoft) with **egui** is a common and excell
 
 ---
 
-## 🛠️ Implementation
+### Implementation
 
 Integration is straightforward and only takes a few lines of code.
 
-### 1. Add the dependency
+#### 1. Add the dependency
 Add this to your `Cargo.toml`:
 
 ```toml
@@ -188,7 +188,7 @@ mimalloc = "0.1"
 
 ----
 
-### 2. Set the Global Allocator
+#### 2. Set the Global Allocator
 In your `main.rs` (or `lib.rs`), declare it as the global allocator. This must be done at the root of the file, outside of any function.
 
 ```rust
@@ -268,37 +268,37 @@ While mimalloc is fast, it isn't a "magic wand" for performance:
 ----
 
 
-## Optmizations
+## ✨ Optmizations
 
 ### 1. Optimize `Cargo.toml`
 
 ```toml
 [package]
-name = "mon_application_egui"
+name = "my_egui_application"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Désactive les fonctionnalités par défaut inutiles pour réduire les dépendances
+# Disable unnecessary default features to reduce dependencies
 eframe = { version = "0.27", default-features = false, features = [
-    "accesskit",     # Accessibilité
-    "default_fonts", # Polices de base (essentiel)
-    "glow",          # Rendu via OpenGL (plus léger que WGPU en natif)
-    "wayland",       # Pour Linux
-    "x11",           # Pour Linux
+    "accesskit",     # Accessibility
+    "default_fonts", # Basic fonts (essential)
+    "glow",          # Rendering via OpenGL (lighter than WGPU natively)
+    "wayland",       # For Linux
+    "x11",           # For Linux
 ] }
 
 [profile.release]
-# 's' est souvent un meilleur compromis que 'z' pour les GUI
-# car 'z' peut trop ralentir le rendu graphique.
-opt-level = "s"
-lto = true
+# 's' is often a better trade-off than 'z' for GUIs
+# because 'z' can slow down graphical rendering too much.
+opt-level     = "s"
+lto           = true
 codegen-units = 1
-panic = "abort"
-strip = true
+panic         = "abort"
+strip         = true
 
-# OPTIMISATION CRUCIALE : On optimise les dépendances au maximum
-# même en mode debug ou si le profil principal est en 's' ou 'z'.
+# CRUCIAL OPTIMIZATION: Optimize dependencies as much as possible
+# even in debug mode or if the main profile is set to 's' or 'z'.
 [profile.release.package."*"]
 opt-level = 3
 ```
@@ -314,8 +314,7 @@ egui   = { version = "0.27", default-features = false, features = ["default_font
 eframe = { version = "0.27", default-features = false, features = ["wgpu", "glow"] }
 ```
 
-####  Optimizing Egui Native Binary Size
-
+####  Optimizing Egui Native
 
 To compile an **egui** application (generally using `eframe`) into a native binary with a minimal output profile, you need to be a bit more cautious. Unlike a command-line utility, a graphical application depends on heavy system libraries and font/image management.
 
