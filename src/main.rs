@@ -30,9 +30,7 @@ fn main() -> eframe::Result {
 	eframe::run_native(
 		"egui (Desktop App)",
 		options,
-		Box::new(|cc| {
-			cc.egui_ctx.set_visuals(egui::Visuals::dark());
-			Ok(Box::new(MyApp::default()))
+		Box::new(|cc| {			Ok(Box::new(MyApp::new(cc)))  // ← restore from the storage
 		}),
 	)
 }
@@ -66,10 +64,8 @@ fn load_icon() -> IconData {
 #[cfg(target_arch = "wasm32")]
 fn main() {
 
-	// Redirect Rust `panic` to console.error into web browser
 	std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-	// put trace on console log
 	web_sys::console::log_1(&"Start `egui` application...".into());
 
 	use eframe::wasm_bindgen::JsCast as _;
@@ -93,8 +89,7 @@ fn main() {
 				canvas,
 				web_options,
 				Box::new(|cc| {
-					cc.egui_ctx.set_visuals(egui::Visuals::dark());
-					Ok(Box::new(MyApp::default()))
+					Ok(Box::new(MyApp::new(cc)))  // ← restaure depuis le stockage
 				}),
 			)
 			.await;
@@ -117,4 +112,3 @@ fn main() {
 		}
 	});
 }
-

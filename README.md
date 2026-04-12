@@ -435,6 +435,9 @@ Reference: [Twiggy Documentation](https://rustwasm.github.io/twiggy/)
 
 **TO DO**
 
+## 💾 Persistant storage
+
+On desktop, the state is saved in the system configuration file (e.g., `~/.local/share/<app_name>/app.ron` on **Linux**). On the web, eframe uses the browser's `localStorage`.
 
 ----
 

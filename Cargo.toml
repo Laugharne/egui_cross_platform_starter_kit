@@ -1,15 +1,22 @@
 [package]
-name    = "egui_cross_platform"
+name    = "egui_cross_platform_starter_kit"
 version = "0.1.0"
 edition = "2024"
 
-
 [dependencies]
-eframe  = "0.34.1"
-egui    = "0.34.1"
+# The feature persistance exists on both egui and eframe.
+#
+# On egui it adds #[derive(Serialize, Deserialize)] on a bunch of types.
+# On eframe it does the actual persistence (and adds the feature flag to egui).
+#
+# https://github.com/emilk/egui/issues/733
+eframe = { version = "0.34.1", features = ["persistence"] }
+egui   = "0.34.1"
+
+serde  = { version = "1", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-image   = "0.25.9"
+image    = "0.25.9"
 mimalloc = "0.1.48"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
