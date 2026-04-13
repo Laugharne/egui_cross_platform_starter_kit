@@ -412,6 +412,8 @@ wasm-opt -Oz -o output_optimized.wasm input.wasm
 
 See: [Binaryen (wasm-opt) on GitHub](https://github.com/WebAssembly/binaryen)
 
+----
+
 #### Use Compression (Brotli/Gzip)
 
 This is the most effective way to reduce transfer size. WASM files are highly compressible. A 5MB file can often be served at around 1.2MB using Brotli.
@@ -419,6 +421,8 @@ This is the most effective way to reduce transfer size. WASM files are highly co
 - Brotli: Best compression ratio for web assets.
 - Gzip: Faster but slightly larger than Brotli.
 - Reference: [MDN - Content-Encoding](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding)
+
+----
 
 #### Analyze the Binary with `twiggy`
 
@@ -431,13 +435,67 @@ twiggy top -n 20 your_file.wasm
 
 Reference: [Twiggy Documentation](https://rustwasm.github.io/twiggy/)
 
+----
+
 #### Trunk spécific
 
-**TO DO**
+**Enabling `wasm-opt` in Trunk**
+
+Trunk has built-in support for `wasm-opt`. If you have the tool installed on your system (or if Trunk downloads it automatically), it will run as part of the `--release` build.
+
+**In your `Trunk.toml` (or as command line flags):** You don't usually need to change anything if you run with the release flag, but you can verify it:
+
+```Bash
+trunk build --release
+```
+
+Trunk will look for `wasm-opt` in your path. If it's missing, you can install it via your package manager (e.g., `brew install binaryen` or `sudo apt install binaryen`).
+
+- **Reference:** [Trunk Documentation - Tools](https://trunkrs.dev/tools/%23wasm-opt)
+
+
+**Trunk Asset Pipeline (Hashing and Minification)**
+
+Trunk automatically handles cache busting by adding hashes to your `.wasm` filenames. This allows you to set long-term "Immutable" cache headers on your server, which improves perceived performance for returning users.
+
+If you have a `index.html` file, ensure your link to the WASM/JS is handled by Trunk:
+
+```html
+<link rel="rust" data-bin="my_app" data-wasm-opt="z" />
+```
+
+The `data-wasm-opt="z"` attribute tells Trunk specifically which optimization level to pass to the optimizer.
+
+
+**Automatic Brotli/Gzip with `trunk serve`**
+
+When you use `trunk serve`, it doesn't necessarily compress files (as it's meant for local dev). However, for production, you should use the output of `trunk build --release` (the `dist/` folder) and serve it with a web server that supports compression.
+
+**Pro-Tip: GitHub Pages / Vercel / Netlify** If you deploy your `dist/` folder to these platforms, they automatically apply **Gzip** or **Brotli** compression to `.wasm` files. You don't have to do anything!
+
+**Final Cargo.toml for Trunk Users**
+
+To make sure Trunk has the best "raw material" to work with, your `Cargo.toml` should look exactly like this for production:
+
+```toml
+[profile.release]
+opt-level     = "z"     # Optimize for size
+lto           = true    # Link Time Optimization
+codegen-units = 1       # Maximum optimization potential
+panic         = "abort" # Remove stack unwinding code
+strip         = true    # Remove all symbols/debug info
+```
+
+- **Reference:** [The Rust Wasm Book - Shrinking .wasm Size](https://rustwasm.github.io/docs/book/reference/shrinking-size.html)
+
+----
+
+
 
 ## 💾 Persistant storage
 
-On desktop, the state is saved in the system configuration file (e.g., `~/.local/share/<app_name>/app.ron` on **Linux**). On the web, eframe uses the browser's `localStorage`.
+- On **desktop**, the state is saved in the [**RON format**](https://github.com/ron-rs) within the system configuration file (`~/.local/share/<app_name>/app.ron` on **Linux**).
+- On the **web**, eframe uses the browser's `localStorage`.
 
 ----
 
@@ -461,15 +519,19 @@ On desktop, the state is saved in the system configuration file (e.g., `~/.local
 
 **mimalloc:**
 - [The Power of jemalloc and mimalloc in Rust — and When to Use Them](https://medium.com/@syntaxSavage/the-power-of-jemalloc-and-mimalloc-in-rust-and-when-to-use-them-820deb8996fe)
-- https://crates.io/crates/mimalloc
-- https://docs.rs/crate/mimalloc/latest
-- https://microsoft.github.io/mimalloc/
-- https://github.com/microsoft/mimalloc
-- https://github.com/microsoft/mimalloc/issues/140 ⚠
+- [crates.io: Rust Package Registry](https://crates.io/crates/mimalloc)
+- [mimalloc 0.1.48 - Docs.rs](https://docs.rs/crate/mimalloc/latest)
+- [GitHub - mi-malloc: mi-malloc](https://microsoft.github.io/mimalloc/)
+- [microsoft/mimalloc: mimalloc is a compact general purpose allocator with excellent performance.](https://github.com/microsoft/mimalloc)
+- [Link with -lrt for older glibc by jserv · Pull Request #140 · microsoft/mimalloc](https://github.com/microsoft/mimalloc/issues/140) ⚠
+
+**misc...**
+- [GitHub - ron-rs/ron: Rusty Object Notation](https://github.com/ron-rs/ron)
+
 
 ## 🤝 Contributing
 
-Contributions are welcome\! Feel free to open an issue or submit a pull request to improve this starter kit.
+Contributions are welcome ! Feel free to open an issue or submit a pull request to improve this starter kit.
 
 
 ----
