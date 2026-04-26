@@ -27,3 +27,5 @@ dist/
 .env
 notes/
 backup/
+history.log
+versions.log

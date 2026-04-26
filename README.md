@@ -475,7 +475,7 @@ When you use `trunk serve`, it doesn't necessarily compress files (as it's meant
 
 **Final Cargo.toml for Trunk Users**
 
-To make sure Trunk has the best "raw material" to work with, your `Cargo.toml` should look exactly like this for production:
+As seen previously, to make sure Trunk has the best "raw material" to work with, your `Cargo.toml` should look exactly like this for production:
 
 ```toml
 [profile.release]
@@ -527,6 +527,10 @@ strip         = true    # Remove all symbols/debug info
 
 **misc...**
 - [GitHub - ron-rs/ron: Rusty Object Notation](https://github.com/ron-rs/ron)
+- [leptos-rs/start-trunk: A Starter Template for Leptos-rs CSR Apps using the Trunk build tool](https://github.com/leptos-rs/start-trunk/tree/main)
+
+
+----
 
 
 ## 🤝 Contributing
