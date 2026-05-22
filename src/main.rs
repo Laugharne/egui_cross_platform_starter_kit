@@ -16,21 +16,28 @@ static GLOBAL: MiMalloc = MiMalloc;
 mod app;
 use app::MyApp;
 
+mod constants;
+pub use constants::*;
+
 // desktop version
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
 
 	let options: eframe::NativeOptions = eframe::NativeOptions {
 		viewport: egui::ViewportBuilder::default()
-			.with_inner_size([400.0, 300.0])
-			.with_icon(load_icon()),
+			.with_inner_size([INNER_WIDTH, INNER_HEIGHT])
+			.with_icon(load_icon())
+			//.with_resizable(false)
+			//.with_fullscreen(false)
+			,
 		..Default::default()
 	};
 
 	eframe::run_native(
 		"egui (Desktop App)",
 		options,
-		Box::new(|cc| {			Ok(Box::new(MyApp::new(cc)))  // ← restore from the storage
+		Box::new(|cc| {
+			Ok(Box::new(MyApp::new(cc)))  // ← restore from the storage
 		}),
 	)
 }
